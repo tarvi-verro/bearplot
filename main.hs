@@ -5,6 +5,7 @@ import Graphics.UI.Gtk
 import Graphics.Rendering.Cairo
 import Control.Concurrent
 import Control.Concurrent.MVar
+import Text.Printf
 
 data Params = Params {
             φw :: Int,
@@ -46,16 +47,22 @@ drawGrid φ = do
               ) ytics
         stroke
 
+        let displayCoordinate = printf "%.1f" :: Double -> String
+
         setSourceRGB 0.4 0.4 0.4
         mapM_ (\(xt, fx) -> do
-              TextExtents {textExtentsWidth = tw, textExtentsHeight = th} <- textExtents $ show fx
+              let fxs = displayCoordinate fx
+
+              TextExtents {textExtentsWidth = tw, textExtentsHeight = th} <- textExtents $ fxs
               moveTo (xt-tw/2) (h+height+th+5)
-              showText $ show fx
+              showText fxs
               ) xtics
         mapM_ (\(yt, fy) -> do
-              TextExtents {textExtentsWidth = tw, textExtentsHeight = th} <- textExtents $ show fy
+              let fys = displayCoordinate fy
+
+              TextExtents {textExtentsWidth = tw, textExtentsHeight = th} <- textExtents $ fys
               moveTo (w - tw - 7) (yt + th/2)
-              showText $ show fy
+              showText fys
               ) ytics
         stroke
 
