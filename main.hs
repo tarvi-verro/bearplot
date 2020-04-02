@@ -16,7 +16,7 @@ data Params = Params {
             } deriving (Show)
 
 getTics :: (Double,Double) -> [Double]
-getTics (a,b) = [ a+i*(b-a)/10 | i <- [0 .. 10]]
+getTics (a,b) = [ a+i*(b-a)/10 | i <- [0 .. 10] ]
 
 drawGrid :: Params -> Render ()
 drawGrid φ = do
@@ -40,6 +40,7 @@ drawGrid φ = do
               lineTo xt (h+height)
               ) xtics
         stroke
+
         let ytics = map (\fy -> (snd $ fnScrnSpc φ (0,fy), fy)) $ getTics $ φyrange φ
         mapM_ (\(yt, _) -> do
               moveTo w yt
@@ -66,17 +67,6 @@ drawGrid φ = do
               ) ytics
         stroke
 
-        -- Draw x-axis
---        setSourceRGB 0.8 0.8 0.8
---        moveTo w (h+height/2)
---        lineTo (w+width) (h+height/2)
---        moveTo (w+width/2) h
---        lineTo (w+width/2) (h+height)
---        moveTo (w+width/2) (h+height)
---        closePath
-        showText "HELLO"
-        stroke
-
 boxDimensions φ = (10+tb,10,winw-20-tb,winh-20-tb) where
     tb = 20
     winw = fromIntegral $ φw φ
@@ -99,13 +89,10 @@ drawGraph φ fs = do
         let (y0,y1) = φyrange φ
         let samples = fromIntegral $ φsamples φ
 
-
         setLineWidth 1
         setSourceRGB 0.1 0.5 0.1
 
         let xs = [ x0 + abs (x1 - x0) * d / samples | d <- [0 .. samples] ]
-
-        --let fnSpc x = (x, f x)
 
         let fltrInf = filter (not . isInfinite . snd)
         let fltrClp = filter (\(x,y) -> y > h && y < h + height)
@@ -122,19 +109,15 @@ updCanvas c = do
         dw <- widgetGetWindow c
 
         drawWindowBeginPaintRect (fromJust dw) (Rectangle 0 0 100 100)
-        --renderWithDrawWindow (fromJust dw) (drawGraph 0.55)
         drawWindowEndPaint (fromJust dw)
 
 main :: IO ()
 main = do
         let p = Params { φw = 600, φh = 400, φxrange = (0,4), φyrange = (0,10), φsamples = 100 }
 
-        putStrLn "threadGUI entering"
-        isCurrentThreadBound >>= print
 
 
         initGUI
-        --unsafeInitGUIForThreadedRTS
         w <- windowNew
         set w [ windowTitle := "hnuplot", windowDefaultWidth := φw p, windowDefaultHeight := φh p ]
 
@@ -145,14 +128,6 @@ main = do
         widgetModifyBg c StateNormal (Color 65535 65535 65535)
         widgetShowAll w
 
-        dw <- widgetGetWindow c
-
-        --drawWindowEndPaint (fromJust dw)
-
-        --drawin <- widgetGetDrawWindow c
-        --onExpose c (\x -> do renderWithDrawable drawin drawGraph
-        --                     return (eventSent x))
-        --onDestroy w mainQuit
         on w objectDestroy mainQuit
 
         let pulse x | x > 0 && x < 1 = 1
@@ -163,33 +138,12 @@ main = do
         --let fns = [pulse,(**2), const 2, const (-2)]
 
         drw <- on c draw (drawGraph p fns)
-        --forkOS mainGUI
         mainGUI
+
         putStrLn "threadGUI exit"
 
         putStrLn "threadLive entering"
         isCurrentThreadBound >>= print
-
-
-        threadDelay $ 3 * 10^6
-
---        putStrLn "Drawing again"
---        signalDisconnect drw
---        drw <- on c draw (drawGraph (fn . (*) 0.3))
---        widgetQueueDraw c
---        threadDelay $ 1 * 10^6
---
---        putStrLn "Drawing again"
---        signalDisconnect drw
---        drw <- on c draw (drawGraph (fn . (*) 0.1))
---        widgetQueueDraw c
---        threadDelay $ 1 * 10^6
---
---        putStrLn "Drawing again"
---        signalDisconnect drw
---        drw <- on c draw (drawGraph (fn . (*) 0.05))
---        widgetQueueDraw c
---        threadDelay $ 1 * 10^6
 
         putStrLn "threadLive exit"
 
