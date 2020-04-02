@@ -14,4 +14,13 @@ plot-mouse: m
 		sleep .03; \
 	done) | ./m
 
-.PHONY: plot-tstfn plot-mouse
+plot-sys: m
+	{ while true; do \
+		{ \
+		top -bn1 | grep "Cpu(s)" | grep -o '[0-9.]\+ id' | awk '{ print (100-$$1)/10 }'; \
+		free --si | head -n2 | tail -n1 | awk '{ print 10 - $$7 / $$2 * 10.0 }'; \
+		} | xargs echo; \
+		sleep 0.5; \
+	done } | ./m
+
+.PHONY: plot-tstfn plot-mouse plot-sys
