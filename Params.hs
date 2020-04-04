@@ -1,5 +1,13 @@
 module Params where
 
+data Function = Continuous (Double -> Double)
+              | Discrete [(Double, Double)]
+
+instance Show Function where
+        show f = case f of
+                     (Continuous _) -> "Continuous fn"
+                     (Discrete _) -> "Discrete fn"
+
 data View = View { offset :: Double
                  , width :: Double
                  } deriving Show
@@ -13,5 +21,6 @@ data Params = Params { φw :: Int
                      , φxView :: View
                      , φyView :: View
                      , φsamples :: Int
+                     , φgraphs :: [Function]
             } deriving (Show)
 

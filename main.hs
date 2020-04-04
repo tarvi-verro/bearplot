@@ -77,8 +77,8 @@ fnClipSpc φ (x,y) = ((x - x0)/(x1-x0), (y -y0)/(y1-y0)) where
 
 fnScrnSpc φ = clipScrnSpc φ . fnClipSpc φ
 
-drawGraph :: Params -> [Double -> Double] -> Render ()
-drawGraph φ fs = do
+drawGraphs :: Params -> Render ()
+drawGraphs φ = do
         drawGrid φ
 
         -- Plot window
@@ -95,10 +95,13 @@ drawGraph φ fs = do
         let fltrInf = filter (not . isInfinite . snd)
         let fltrClp = filter (\(x,y) -> y > h && y < h + height)
 
-        let lines f = fltrClp $ map (fnScrnSpc φ . (\x->(x,f x))) xs
+        let discretePts fn = case fn of
+                    (Continuous f) -> map (\x->(x,f x)) xs
+                    (Discrete pts) -> pts
+        let lines = map (fnScrnSpc φ) . discretePts
         let drw f = do uncurry moveTo $ head  $ lines f
                        mapM_ (uncurry lineTo) (lines f)
-        mapM_ drw fs
+        mapM_ drw $ φgraphs φ
 
         stroke
 
@@ -111,11 +114,18 @@ updCanvas c = do
 
 main :: IO ()
 main = do
+
+        let pulse x | x > 0 && x < 1 = 1
+                    | otherwise = 0
+        let pwrSeries n x = sum $ map (x**) [0..n]
+        let fns = map Continuous $ (\x -> 1/(1-x)) : (pwrSeries <$> [1..15])
+
         let p = Params { φw = 600
                        , φh = 400
                        , φxView = View 0 10
                        , φyView = View 0 10
                        , φsamples = 100
+                       , φgraphs = fns
                        }
 
 
@@ -133,14 +143,8 @@ main = do
 
         on w objectDestroy mainQuit
 
-        let pulse x | x > 0 && x < 1 = 1
-                    | otherwise = 0
-        let pwrSeries n x = sum $ map (x**) [0..n]
-        let fns = (\x -> 1/(1-x)) : (pwrSeries <$> [1..15])
-        --let fns = (\x -> 1/(1-x)) : []
-        --let fns = [pulse,(**2), const 2, const (-2)]
 
-        drw <- on c draw (drawGraph p fns)
+        drw <- on c draw (drawGraphs p)
         mainGUI
 
         putStrLn "threadGUI exit"
