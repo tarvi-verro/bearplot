@@ -77,10 +77,16 @@ fnClipSpc φ (x,y) = ((x - x0)/(x1-x0), (y -y0)/(y1-y0)) where
 
 fnScrnSpc φ = clipScrnSpc φ . fnClipSpc φ
 
-drawGraphs :: Params -> Render ()
-drawGraphs φ = do
+drawDecorations φ = do
+        -- Paint background
+        setSourceRGB 1.0 1.0 1.0
+        paint
+
         drawGrid φ
 
+drawGraphs :: Params -> Render ()
+drawGraphs φ = do
+        drawDecorations φ
         -- Plot window
         let (w,h,width,height) = boxDimensions φ
         let (x0,x1) = φxrange φ
@@ -88,22 +94,30 @@ drawGraphs φ = do
         let samples = fromIntegral $ φsamples φ
 
         setLineWidth 1
-        setSourceRGB 0.1 0.5 0.1
+        let colours = [ setSourceRGB 0.1 0.5 0.1
+                      , setSourceRGB 0.1 0.1 0.5
+                      , setSourceRGB 0.5 0.1 0.1
+                      ]
 
         let xs = [ x0 + abs (x1 - x0) * d / samples | d <- [0 .. samples] ]
 
         let fltrInf = filter (not . isInfinite . snd)
-        let fltrClp = filter (\(x,y) -> y > h && y < h + height)
 
         let discretePts fn = case fn of
                     (Continuous f) -> map (\x->(x,f x)) xs
                     (Discrete pts) -> pts
         let lines = map (fnScrnSpc φ) . discretePts
-        let drw f = do uncurry moveTo $ head  $ lines f
-                       mapM_ (uncurry lineTo) (lines f)
-        mapM_ drw $ φgraphs φ
 
-        stroke
+        let drw (colourIndex, f) = do
+                       colours !! colourIndex
+
+                       let lns = lines f
+                       if length lns >= 1 then uncurry moveTo $ head $ lns
+                                          else return ()
+                       mapM_ (uncurry lineTo) lns
+                       stroke
+
+        mapM_ drw $ zip (cycle [ 0 .. (length colours) - 1]) $ φgraphs φ
 
 updCanvas c = do
         threadsEnter
@@ -138,7 +152,6 @@ main = do
         containerAdd w f
         c <- drawingAreaNew
         containerAdd f c
-        widgetModifyBg c StateNormal (Color 65535 65535 65535)
         widgetShowAll w
 
         on w objectDestroy mainQuit
