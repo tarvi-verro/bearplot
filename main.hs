@@ -72,12 +72,15 @@ boxDimensions φ = (10+tb,10,winw-20-tb,winh-20-tb) where
     winw = fromIntegral $ φw φ
     winh = fromIntegral $ φh φ
 
-fnScrnSpc φ  = scrnSpc . clipSpc where
-        (w,h,width,height) = boxDimensions φ
+-- Converts clip space x∊[0,1] and y∊[0,1] to plot window space
+clipScrnSpc φ (x,y) = (x*width + w, height-y*height + h) where
+    (w,h,width,height) = boxDimensions φ
+
+fnClipSpc φ (x,y) = ((x - x0)/(x1-x0), (y -y0)/(y1-y0)) where
         (x0,x1) = φxrange φ
         (y0,y1) = φyrange φ
-        clipSpc (x,y) = ((x - x0)/(x1-x0), (y -y0)/(y1-y0))
-        scrnSpc (x,y) = (x*width + w, height-y*height + h)
+
+fnScrnSpc φ = clipScrnSpc φ . fnClipSpc φ
 
 drawGraph :: Params -> [Double -> Double] -> Render ()
 drawGraph φ fs = do
