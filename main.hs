@@ -7,13 +7,8 @@ import Control.Concurrent
 import Control.Concurrent.MVar
 import Text.Printf
 
-data Params = Params {
-            φw :: Int,
-            φh :: Int,
-            φxrange :: (Double,Double),
-            φyrange :: (Double,Double),
-            φsamples :: Int
-            } deriving (Show)
+import Params
+
 
 getTics :: (Double,Double) -> [Double]
 getTics (a,b) = [ a+i*(b-a)/10 | i <- [0 .. 10] ]
@@ -116,7 +111,12 @@ updCanvas c = do
 
 main :: IO ()
 main = do
-        let p = Params { φw = 600, φh = 400, φxrange = (0,4), φyrange = (0,10), φsamples = 100 }
+        let p = Params { φw = 600
+                       , φh = 400
+                       , φxrange = (0,4)
+                       , φyrange = (0,10)
+                       , φsamples = 100
+                       }
 
 
 

@@ -1,5 +1,5 @@
 
-m: main.hs Makefile
+m: main.hs Makefile Params.hs
 	ghc -dynamic -threaded $(filter %.hs, $^) -o $@
 
 tstfn: tstfn.hs
