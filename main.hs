@@ -1,14 +1,17 @@
 
+import StreamInput (mainLoopStream)
 import Data.Maybe
 import System.Clock
+import Data.Time.Clock (getCurrentTime, diffUTCTime)
 import Graphics.UI.Gtk
 import Graphics.Rendering.Cairo
 import Control.Concurrent
 import Control.Concurrent.MVar
+import Graphics.UI.Gtk.Gdk.EventM
+import Data.Text (unpack)
 import Text.Printf
 
 import Params
-
 
 getTics :: (Double,Double) -> [Double]
 getTics (a,b) = [ a+i*(b-a)/10 | i <- [0 .. 10] ]
@@ -119,12 +122,43 @@ drawGraphs φ = do
 
         mapM_ drw $ zip (cycle [ 0 .. (length colours) - 1]) $ φgraphs φ
 
-updCanvas c = do
-        threadsEnter
-        dw <- widgetGetWindow c
+update φv ptss = putMVar φv $ \φ -> φ { φgraphs = map Discrete ptss }
 
-        drawWindowBeginPaintRect (fromJust dw) (Rectangle 0 0 100 100)
-        drawWindowEndPaint (fromJust dw)
+mainUpdateφv c φv φ drwSigMV var = do
+        postGUIAsync $ do
+            drw <- on c draw (drawGraphs φ)
+
+            oldDrw <- tryTakeMVar drwSigMV
+            case oldDrw of
+                Nothing -> return ()
+                Just d -> signalDisconnect d
+
+            putMVar drwSigMV drw
+
+            widgetQueueDraw c
+
+        φλ <- takeMVar φv
+
+        let φ' = φλ φ
+        mainUpdateφv c φv φ' drwSigMV (var + 1)
+
+
+mainScrollX φv mt = do
+        t <- getCurrentTime
+        let t0 = case mt of
+                 Nothing -> t
+                 Just t0 -> t0
+
+        let δ = fromRational $ toRational $ diffUTCTime t0 t
+
+        putMVar φv (\φ -> if (φmode φ) == Follow
+                                then φ {φxView = (φxView φ) { offset = δ }}
+                                else φ
+                   )
+
+        threadDelay $ 5 * 10^3
+        mainScrollX φv $ Just t0
+
 
 main :: IO ()
 main = do
@@ -140,10 +174,10 @@ main = do
                        , φyView = View 0 10
                        , φsamples = 100
                        , φgraphs = fns
+                       , φmode = Follow
                        }
 
-
-
+        φv <- newMVar (\_ -> p)
         initGUI
         w <- windowNew
         set w [ windowTitle := "hnuplot", windowDefaultWidth := φw p, windowDefaultHeight := φh p ]
@@ -156,8 +190,39 @@ main = do
 
         on w objectDestroy mainQuit
 
+        drwSigMV <- newEmptyMVar
+        forkIO $ mainUpdateφv c φv p drwSigMV 0
+        forkIO $ mainLoopStream (update φv)
+        forkIO $ mainScrollX φv Nothing
 
-        drw <- on c draw (drawGraphs p)
+        on w keyReleaseEvent $ tryEvent $ do
+              "q" <- fmap unpack eventKeyName
+              liftIO $ widgetDestroy w
+
+        on w keyReleaseEvent $ tryEvent $ do
+              "f" <- fmap unpack eventKeyName
+              liftIO $ putMVar φv $ \φ -> φ { φmode = toggleMode $ φmode φ }
+
+        on w scrollEvent $ tryEvent $ do
+              mods <- eventModifier
+              direction <- eventScrollDirection
+              let multiplier = case direction of
+                               ScrollUp -> 1
+                               ScrollDown -> -1
+                               otherwise -> 0
+
+              let modView = if Control `elem` mods
+                                then \view -> view { Params.width = (Params.width view) + multiplier }
+                                else \view -> view { offset = (offset view) - multiplier }
+
+              let modφ = if Shift `elem` mods
+                              then \φ -> φ { φxView = modView $ φxView φ }
+                              else \φ -> φ { φyView = modView $ φyView φ }
+
+              if multiplier /= 0
+                  then liftIO $ putMVar φv modφ
+                  else return ()
+
         mainGUI
 
         putStrLn "threadGUI exit"
