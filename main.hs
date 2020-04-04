@@ -113,8 +113,8 @@ main :: IO ()
 main = do
         let p = Params { φw = 600
                        , φh = 400
-                       , φxrange = (0,4)
-                       , φyrange = (0,10)
+                       , φxView = View 0 10
+                       , φyView = View 0 10
                        , φsamples = 100
                        }
 
