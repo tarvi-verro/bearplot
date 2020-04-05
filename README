@@ -1,0 +1,17 @@
+BEARPLOT
+========
+
+Started out as a realization that describing a series of functions makes sense
+in Haskell, ended up being adjusted to plot streamed data.
+
+Usage
+-----
+
+There's examples on its usage in the Makefile.
+
+Currently some of the configuration is still at the source code level, so
+don't be a stranger to messing around with it.
+
+In particular, you'll likely want to increase the "cutoff" value in
+StreamInput.sh.
+

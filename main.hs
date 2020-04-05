@@ -180,7 +180,7 @@ main = do
         φv <- newMVar (\_ -> p)
         initGUI
         w <- windowNew
-        set w [ windowTitle := "hnuplot", windowDefaultWidth := φw p, windowDefaultHeight := φh p ]
+        set w [ windowTitle := "bearplot", windowDefaultWidth := φw p, windowDefaultHeight := φh p ]
 
         f <- frameNew
         containerAdd w f
