@@ -91,7 +91,6 @@ drawGraphs :: Params -> Render ()
 drawGraphs φ = do
         drawDecorations φ
         -- Plot window
-        let (w,h,width,height) = boxDimensions φ
         let (x0,x1) = φxrange φ
         let (y0,y1) = φyrange φ
         let samples = fromIntegral $ φsamples φ
@@ -182,10 +181,8 @@ main = do
         w <- windowNew
         set w [ windowTitle := "bearplot", windowDefaultWidth := φw p, windowDefaultHeight := φh p ]
 
-        f <- frameNew
-        containerAdd w f
         c <- drawingAreaNew
-        containerAdd f c
+        containerAdd w c
         widgetShowAll w
 
         on w objectDestroy mainQuit
@@ -194,6 +191,11 @@ main = do
         forkIO $ mainUpdateφv c φv p drwSigMV 0
         forkIO $ mainLoopStream (update φv)
         forkIO $ mainScrollX φv Nothing
+
+        on w configureEvent $ tryEvent $ do
+            (w, h) <- eventSize
+            liftIO $ widgetQueueResize c
+            liftIO $ putMVar φv $ \φ -> φ { φw = w, φh = h }
 
         on w keyReleaseEvent $ tryEvent $ do
               "q" <- fmap unpack eventKeyName
