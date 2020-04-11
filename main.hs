@@ -78,6 +78,10 @@ fnClipSpc φ (x,y) = ((x - x0)/(x1-x0), (y -y0)/(y1-y0)) where
         (x0,x1) = φxrange φ
         (y0,y1) = φyrange φ
 
+clipFnSpc φ (x,y) = (x*(x1-x0) + x0, y*(y1-y0) + y0) where
+        (x0,x1) = φxrange φ
+        (y0,y1) = φyrange φ
+
 fnScrnSpc φ = clipScrnSpc φ . fnClipSpc φ
 
 drawDecorations φ = do
@@ -86,6 +90,17 @@ drawDecorations φ = do
         paint
 
         drawGrid φ
+
+-- Function is basically: takeWhile f . dropWhile g, but fetches on extra
+-- point on each side
+filterRangeDiscrete f g = takeOneMore f . dropOneLess g where
+    dropOneLess g ks@(_ : j : _) | not $ g j = ks
+                                 | otherwise = dropOneLess g $ tail ks
+    dropOneLess _ _ = []
+    takeOneMore f ks@(i : j : _) | f i = i : (takeOneMore f $ tail ks)
+                                 | otherwise = [i, j]
+    takeOneMore _ ks = ks
+
 
 drawGraphs :: Params -> Render ()
 drawGraphs φ = do
@@ -107,7 +122,9 @@ drawGraphs φ = do
 
         let discretePts fn = case fn of
                     (Continuous f) -> map (\x->(x,f x)) xs
-                    (Discrete pts) -> pts
+                    (Discrete pts) -> filterRangeDiscrete take drop pts where
+                        take = (\(x,_) -> x > (fst $ clipFnSpc φ (0.0, 0.0)))
+                        drop = (\(x,_) -> x > (fst $ clipFnSpc φ (1.0, 0.0)))
         let lines = map (fnScrnSpc φ) . discretePts
 
         let drw (colourIndex, f) = do
